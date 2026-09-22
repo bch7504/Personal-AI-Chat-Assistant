@@ -1,0 +1,15 @@
+.git
+.gitignore
+.ai-log
+.env
+.venv
+Frontend
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+docs/
+presentation/
+*.md
+!requirements.txt
+!eval/results/*.md

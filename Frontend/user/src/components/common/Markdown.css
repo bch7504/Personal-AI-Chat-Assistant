@@ -1,0 +1,63 @@
+.agent-markdown {
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  overflow-wrap: anywhere;
+}
+
+.agent-markdown > :first-child {
+  margin-top: 0;
+}
+
+.agent-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.agent-markdown .md-heading {
+  margin: .8em 0 .3em;
+  color: inherit;
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: normal;
+  line-height: 1.45;
+}
+
+.agent-markdown .md-h1 {
+  font-size: 1.12em;
+}
+
+.agent-markdown .md-h2 {
+  font-size: 1.08em;
+}
+
+.agent-markdown .md-h3,
+.agent-markdown .md-h4,
+.agent-markdown .md-h5,
+.agent-markdown .md-h6 {
+  font-size: 1em;
+}
+
+.agent-markdown .md-p {
+  margin: .35em 0;
+}
+
+.agent-markdown .md-list {
+  margin: .35em 0 .5em;
+  padding-left: 1.5em;
+}
+
+.agent-markdown .md-li {
+  margin: .2em 0;
+}
+
+.agent-markdown .md-li > .md-p {
+  margin: 0;
+}
+
+.agent-markdown .md-code {
+  border-radius: 4px;
+  background: rgba(40, 50, 80, .08);
+  padding: .08em .3em;
+  font-size: .92em;
+}

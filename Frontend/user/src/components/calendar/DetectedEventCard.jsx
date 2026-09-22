@@ -1,0 +1,3 @@
+export default function DetectedEventCard({ title, source, date, color }) {
+  return <div className="detected-event"><div className="event-date" style={{background:`${color}12`,color}}><strong>{date.split(' ')[0]}</strong><span>{date.split(' ')[1]}</span></div><div className="flex-grow-1"><h4>{title}</h4><span><i className="bi bi-chat-left-text"/> {source}</span><small><i className="bi bi-clock"/> {date.split(' ').slice(2).join(' ')}</small></div><div className="event-actions"><button className="btn btn-sm btn-primary"><i className="bi bi-check2"/></button><button className="btn btn-sm btn-light"><i className="bi bi-x"/></button></div></div>
+}

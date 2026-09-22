@@ -1,0 +1,121 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:55432:5432"
+    environment:
+      POSTGRES_DB: orbit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orbit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/orbit
+      WORKSPACE_AGENT_RUNTIME_MODE: remote
+      WORKSPACE_AGENT_RUNTIME_URL: http://workspace-agent-product-delivery:8010
+      QUALITY_ASSURANCE_RUNTIME_URL: http://workspace-agent-quality-assurance:8011
+      WORKSPACE_AGENT_RUNTIME_SECRET: ${WORKSPACE_AGENT_RUNTIME_SECRET:-local-product-delivery-runtime-secret-32-bytes}
+      QUALITY_ASSURANCE_RUNTIME_SECRET: ${QUALITY_ASSURANCE_RUNTIME_SECRET:-local-quality-assurance-runtime-secret-32-bytes}
+      WORKSPACE_AGENT_RUNTIME_VERSION: product-delivery-v2
+      WORKSPACE_AGENT_PROGRESS_CALLBACK_URL: http://backend:8000/internal/v1/workspace-agent-progress
+      QUALITY_ASSURANCE_RUNTIME_VERSION: quality-assurance-v2
+      WORKSPACE_AGENT_VERIFIER_ENABLED: ${WORKSPACE_AGENT_VERIFIER_ENABLED:-true}
+      PRODUCT_DELIVERY_HYBRID_ROUTER_ENABLED: ${PRODUCT_DELIVERY_HYBRID_ROUTER_ENABLED:-true}
+      PRODUCT_DELIVERY_SUPERVISOR_ENABLED: ${PRODUCT_DELIVERY_SUPERVISOR_ENABLED:-true}
+      PRODUCT_DELIVERY_MULTI_SPECIALIST_WORKFLOWS_ENABLED: ${PRODUCT_DELIVERY_MULTI_SPECIALIST_WORKFLOWS_ENABLED:-true}
+      PRODUCT_DELIVERY_TASK_SPECIALIST_ENABLED: ${PRODUCT_DELIVERY_TASK_SPECIALIST_ENABLED:-true}
+      DEMO_LOGIN_ENABLED: ${DEMO_LOGIN_ENABLED:-true}
+      PRODUCT_DELIVERY_SPECIALIST_LLM_MAX_OUTPUT_TOKENS: ${PRODUCT_DELIVERY_SPECIALIST_LLM_MAX_OUTPUT_TOKENS:-768}
+      PRODUCT_DELIVERY_SPECIALIST_LLM_TIMEOUT_SECONDS: ${PRODUCT_DELIVERY_SPECIALIST_LLM_TIMEOUT_SECONDS:-6}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Workspace runtimes are optional data-plane dependencies. Core must start and
+    # expose deterministic APIs even when one specialist runtime is unavailable.
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  workspace-agent-product-delivery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >-
+      uvicorn src.workspace_agent_runtime.main:app
+      --host 0.0.0.0 --port 8010
+    ports:
+      - "127.0.0.1:8010:8010"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      WORKSPACE_AGENT_RUNTIME_SECRET: ${WORKSPACE_AGENT_RUNTIME_SECRET:-local-product-delivery-runtime-secret-32-bytes}
+      WORKSPACE_AGENT_RUNTIME_WORKSPACE_ID: ${PRODUCT_DELIVERY_AGENT_WORKSPACE_ID:-9ff3ceb2b31f57238014e93e2402c0c8}
+      WORKSPACE_AGENT_RUNTIME_PROFILE: product_delivery
+      WORKSPACE_AGENT_RUNTIME_VERSION: product-delivery-v2
+      WORKSPACE_AGENT_PROGRESS_CALLBACK_URL: http://backend:8000/internal/v1/workspace-agent-progress
+      WORKSPACE_AGENT_VERIFIER_ENABLED: ${WORKSPACE_AGENT_VERIFIER_ENABLED:-true}
+      PRODUCT_DELIVERY_HYBRID_ROUTER_ENABLED: ${PRODUCT_DELIVERY_HYBRID_ROUTER_ENABLED:-true}
+      PRODUCT_DELIVERY_SUPERVISOR_ENABLED: ${PRODUCT_DELIVERY_SUPERVISOR_ENABLED:-true}
+      PRODUCT_DELIVERY_MULTI_SPECIALIST_WORKFLOWS_ENABLED: ${PRODUCT_DELIVERY_MULTI_SPECIALIST_WORKFLOWS_ENABLED:-true}
+      PRODUCT_DELIVERY_TASK_SPECIALIST_ENABLED: ${PRODUCT_DELIVERY_TASK_SPECIALIST_ENABLED:-true}
+      PRODUCT_DELIVERY_SPECIALIST_LLM_MAX_OUTPUT_TOKENS: ${PRODUCT_DELIVERY_SPECIALIST_LLM_MAX_OUTPUT_TOKENS:-768}
+      PRODUCT_DELIVERY_SPECIALIST_LLM_TIMEOUT_SECONDS: ${PRODUCT_DELIVERY_SPECIALIST_LLM_TIMEOUT_SECONDS:-6}
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/internal/v1/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  workspace-agent-quality-assurance:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >-
+      uvicorn src.workspace_agent_runtime.main:app
+      --host 0.0.0.0 --port 8011
+    ports:
+      - "127.0.0.1:8011:8011"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      WORKSPACE_AGENT_RUNTIME_SECRET: ${QUALITY_ASSURANCE_RUNTIME_SECRET:-local-quality-assurance-runtime-secret-32-bytes}
+      WORKSPACE_AGENT_RUNTIME_WORKSPACE_ID: ${QUALITY_ASSURANCE_AGENT_WORKSPACE_ID:-311fe424edfa41989a495316b6925c84}
+      WORKSPACE_AGENT_RUNTIME_PROFILE: quality_assurance
+      WORKSPACE_AGENT_RUNTIME_VERSION: quality-assurance-v2
+      WORKSPACE_AGENT_PROGRESS_CALLBACK_URL: http://backend:8000/internal/v1/workspace-agent-progress
+      WORKSPACE_AGENT_VERIFIER_ENABLED: ${WORKSPACE_AGENT_VERIFIER_ENABLED:-true}
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8011/internal/v1/health/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  postgres_data:

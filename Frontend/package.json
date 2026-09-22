@@ -1,0 +1,14 @@
+{
+  "name": "orbit-frontends",
+  "private": true,
+  "version": "0.1.0",
+  "engines": { "node": "24.x" },
+  "workspaces": ["user", "admin"],
+  "scripts": {
+    "dev:user": "npm run dev --workspace @orbit/user",
+    "dev:admin": "npm run dev --workspace @orbit/admin",
+    "build:user": "npm run build --workspace @orbit/user",
+    "build:admin": "npm run build --workspace @orbit/admin",
+    "build": "npm run build:user && npm run build:admin"
+  }
+}
